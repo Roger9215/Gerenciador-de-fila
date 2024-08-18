@@ -1,0 +1,32 @@
+function chamarProximaSenha() {
+    const senhaAtual = document.getElementById('senhaAtual').innerText;
+    const novaSenha = "AT" + String(parseInt(senhaAtual.slice(2)) + 1).padStart(4, '0');
+    console.log(`Chamando nova senha: ${novaSenha}`); // Log para verificar a nova senha
+    firebase.database().ref('senhaAtual').set(novaSenha).then(() => {
+        console.log("Senha atualizada no Firebase.");
+        document.getElementById('senhaAtual').innerText = novaSenha; // Atualiza a interface localmente
+    }).catch((error) => {
+        console.error("Erro ao atualizar a senha no Firebase: ", error);
+    });
+}
+
+// Sincronização em tempo real com Firebase
+firebase.database().ref().on('value', function(snapshot) {
+    const data = snapshot.val();
+    for (let i = 1; i <= 4; i++) {
+        const mesa = `mesa${i}`;
+        if (data[mesa]) {
+            document.getElementById(mesa).innerText = `Mesa ${i}: ${data[mesa].status}`;
+            if (data[mesa].status === "Ocupada") {
+                document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
+                startCronometro(mesa, data[mesa].startTime);
+            } else {
+                document.getElementById(`timer${i}`).innerText = "00:00:00";
+                clearInterval(timers[mesa]);
+            }
+        }
+    }
+    if (data.senhaAtual) {
+        document.getElementById('senhaAtual').innerText = data.senhaAtual;
+    }
+});
