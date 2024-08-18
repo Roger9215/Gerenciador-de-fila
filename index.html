@@ -53,58 +53,28 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js"></script>
-    <script src="script.js"></script>
     <script>
         // Configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyB9mZmkBjvW94-tITmu77FoLW2dMBNfSqA",
             authDomain: "rogerio-fila.firebaseapp.com",
-             projectId: "rogerio-fila",
-             storageBucket: "rogerio-fila.appspot.com",
-             messagingSenderId: "925838703109",
-             appId: "1:925838703109:web:38a5575d139ecd93c87a6c",,
+            projectId: "rogerio-fila",
+            storageBucket: "rogerio-fila.appspot.com",
+            messagingSenderId: "925838703109",
+            appId: "1:925838703109:web:38a5575d139ecd93c87a6c",
             databaseURL: "https://rogerio-fila-default-rtdb.firebaseio.com/"
         };
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Máscara para CPF/CNPJ
-        document.getElementById('cpf').addEventListener('input', function (e) {
-            let value = e.target.value.replace(/\D/g, '');
-
-            if (value.length <= 11) {
-                value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-            } else if (value.length <= 14) {
-                value = value.replace(/(\d{2})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d)/, '$1/$2');
-                value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-            }
-
-            e.target.value = value;
-        });
-
-        // Cronômetros
         let timers = {};
+
         function iniciarAtendimento() {
             const mesa = escolherMesaLivre();
             if (mesa) {
-                document.getElementById(mesa).innerText = `${mesa.replace("mesa", "Mesa ")}: Ocupada`;
                 const startTime = new Date().getTime();
-                timers[mesa] = setInterval(function () {
-                    const elapsedTime = new Date().getTime() - startTime;
-                    const hours = String(Math.floor((elapsedTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
-                    const minutes = String(Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-                    const seconds = String(Math.floor((elapsedTime % (1000 * 60)) / 1000)).padStart(2, '0');
-                    document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText = `${hours}:${minutes}:${seconds}`;
-                }, 1000);
-
-                // Atualizar status no Firebase
                 firebase.database().ref(mesa).set({
                     status: "Ocupada",
                     startTime: startTime
@@ -117,13 +87,7 @@
         function finalizarAtendimento() {
             const mesa = escolherMesaOcupada();
             if (mesa) {
-                clearInterval(timers[mesa]);
                 const elapsedTime = document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText;
-                alert(`Atendimento na ${mesa.replace("mesa", "Mesa ")} finalizado. Tempo usado: ${elapsedTime}`);
-                document.getElementById(mesa).innerText = `${mesa.replace("mesa", "Mesa ")}: Livre`;
-                document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText = "00:00:00";
-
-                // Atualizar status no Firebase
                 firebase.database().ref(mesa).set({
                     status: "Livre",
                     elapsedTime: elapsedTime
@@ -136,13 +100,49 @@
         function chamarProximaSenha() {
             const senhaAtual = document.getElementById('senhaAtual').innerText;
             const novaSenha = "AT" + String(parseInt(senhaAtual.slice(2)) + 1).padStart(4, '0');
-            document.getElementById('senhaAtual').innerText = novaSenha;
-
-            // Atualizar senha atual no Firebase
             firebase.database().ref('senhaAtual').set(novaSenha);
         }
 
-        // Escolher uma mesa livre (simples exemplo, pode ser aprimorado)
+        // Sincronização em tempo real com Firebase
+        firebase.database().ref().on('value', function(snapshot) {
+            const data = snapshot.val();
+            for (let i = 1; i <= 4; i++) {
+                const mesa = `mesa${i}`;
+                if (data[mesa]) {
+                    document.getElementById(mesa).innerText = `Mesa ${i}: ${data[mesa].status}`;
+                    if (data[mesa].status === "Ocupada") {
+                        document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
+                        startCronometro(mesa, data[mesa].startTime);
+                    } else {
+                        document.getElementById(`timer${i}`).innerText = "00:00:00";
+                        clearInterval(timers[mesa]);
+                    }
+                }
+            }
+            if (data.senhaAtual) {
+                document.getElementById('senhaAtual').innerText = data.senhaAtual;
+            }
+        });
+
+        function startCronometro(mesa, startTime) {
+            if (timers[mesa]) clearInterval(timers[mesa]);
+            timers[mesa] = setInterval(function () {
+                const elapsedTime = new Date().getTime() - startTime;
+                const hours = String(Math.floor((elapsedTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+                const minutes = String(Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+                const seconds = String(Math.floor((elapsedTime % (1000 * 60)) / 1000)).padStart(2, '0');
+                document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText = `${hours}:${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        function calcularTempoUsado(startTime) {
+            const elapsedTime = new Date().getTime() - startTime;
+            const hours = String(Math.floor((elapsedTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+            const minutes = String(Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+            const seconds = String(Math.floor((elapsedTime % (1000 * 60)) / 1000)).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
         function escolherMesaLivre() {
             for (let i = 1; i <= 4; i++) {
                 if (document.getElementById(`mesa${i}`).innerText.includes("Livre")) {
@@ -159,31 +159,6 @@
                 }
             }
             return null;
-        }
-
-        // Sincronizar dados em tempo real com Firebase
-        firebase.database().ref().on('value', function(snapshot) {
-            const data = snapshot.val();
-            for (let i = 1; i <= 4; i++) {
-                const mesa = `mesa${i}`;
-                if (data[mesa]) {
-                    document.getElementById(mesa).innerText = `Mesa ${i}: ${data[mesa].status}`;
-                    if (data[mesa].status === "Ocupada") {
-                        document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
-                    }
-                }
-            }
-            if (data.senhaAtual) {
-                document.getElementById('senhaAtual').innerText = data.senhaAtual;
-            }
-        });
-
-        function calcularTempoUsado(startTime) {
-            const elapsedTime = new Date().getTime() - startTime;
-            const hours = String(Math.floor((elapsedTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
-            const minutes = String(Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-            const seconds = String(Math.floor((elapsedTime % (1000 * 60)) / 1000)).padStart(2, '0');
-            return `${hours}:${minutes}:${seconds}`;
         }
     </script>
 </body>
