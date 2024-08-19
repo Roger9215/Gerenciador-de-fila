@@ -99,10 +99,24 @@
         }
 
         function chamarProximaSenha() {
-            const senhaAtual = document.getElementById('senhaAtual').innerText;
-            const novaSenha = "AT" + String(parseInt(senhaAtual.slice(2)) + 1).padStart(4, '0');
-            firebase.database().ref('senhaAtual').set(novaSenha);
-        }
+    const senhaAtual = document.getElementById('senhaAtual').innerText;
+    const novaSenha = "AT" + String(parseInt(senhaAtual.slice(2)) + 1).padStart(4, '0');
+    
+    console.log(`Chamando nova senha: ${novaSenha}`); // Log para verificar a nova senha
+
+    // Atualize a interface localmente
+    document.getElementById('senhaAtual').innerText = novaSenha;
+
+    // Atualize no Firebase
+    firebase.database().ref('senhaAtual').set(novaSenha)
+        .then(() => {
+            console.log("Senha atualizada no Firebase.");
+        })
+        .catch((error) => {
+            console.error("Erro ao atualizar a senha no Firebase: ", error);
+        });
+}
+
 
         // Sincronização em tempo real com Firebase
         firebase.database().ref().on('value', function(snapshot) {
