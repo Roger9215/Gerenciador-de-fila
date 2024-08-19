@@ -137,26 +137,30 @@
 }
 
 
-        // Sincronização em tempo real com Firebase
         firebase.database().ref().on('value', function(snapshot) {
-            const data = snapshot.val();
-            for (let i = 1; i <= 4; i++) {
-                const mesa = `mesa${i}`;
-                if (data[mesa]) {
-                    document.getElementById(mesa).innerText = `Mesa ${i}: ${data[mesa].status}`;
-                    if (data[mesa].status === "Ocupada") {
-                        document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
-                        startCronometro(mesa, data[mesa].startTime);
-                    } else {
-                        document.getElementById(`timer${i}`).innerText = "00:00:00";
-                        clearInterval(timers[mesa]);
-                    }
-                }
+    const data = snapshot.val();
+    for (let i = 1; i <= 4; i++) {
+        const mesa = `mesa${i}`;
+        if (data[mesa]) {
+            const mesaElement = document.getElementById(mesa);
+            mesaElement.innerText = `Mesa ${i}: ${data[mesa].status}`;
+
+            if (data[mesa].status === "Ocupada") {
+                const senha = data[mesa].senha ? ` | Senha: ${data[mesa].senha}` : '';
+                mesaElement.innerText += senha;
+                document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
+                startCronometro(mesa, data[mesa].startTime);
+            } else {
+                document.getElementById(`timer${i}`).innerText = "00:00:00";
+                clearInterval(timers[mesa]);
             }
-            if (data.senhaAtual) {
-                document.getElementById('senhaAtual').innerText = data.senhaAtual;
-            }
-        });
+        }
+    }
+    if (data.senhaAtual) {
+        document.getElementById('senhaAtual').innerText = data.senhaAtual;
+    }
+});
+
 
         function startCronometro(mesa, startTime) {
             if (timers[mesa]) clearInterval(timers[mesa]);
