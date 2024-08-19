@@ -58,15 +58,15 @@
     <script>
         // Configuração do Firebase
         const firebaseConfig = {
-          apiKey: "AIzaSyB9mZmkBjvW94-tITmu77FoLW2dMBNfSqA",
-           authDomain: "rogerio-fila.firebaseapp.com",
-           databaseURL: "https://rogerio-fila-default-rtdb.firebaseio.com",
-           projectId: "rogerio-fila",
-           storageBucket: "rogerio-fila.appspot.com",
-           messagingSenderId: "925838703109",
-           appId: "1:925838703109:web:38a5575d139ecd93c87a6c",
+            apiKey: "AIzaSyB9mZmkBjvW94-tITmu77FoLW2dMBNfSqA",
+            authDomain: "rogerio-fila.firebaseapp.com",
+            databaseURL: "https://rogerio-fila-default-rtdb.firebaseio.com",
+            projectId: "rogerio-fila",
+            storageBucket: "rogerio-fila.appspot.com",
+            messagingSenderId: "925838703109",
+            appId: "1:925838703109:web:38a5575d139ecd93c87a6c",
             measurementId: "G-DVRDJW1C0B"
-     };
+        };
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
@@ -98,69 +98,67 @@
             }
         }
 
-       function chamarProximaSenha() {
-    const senhaAtual = document.getElementById('senhaAtual').innerText;
-    const novaSenha = "AT" + String(parseInt(senhaAtual.slice(2)) + 1).padStart(4, '0');
+        function chamarProximaSenha() {
+            const senhaAtual = document.getElementById('senhaAtual').innerText;
+            const novaSenha = "AT" + String(parseInt(senhaAtual.slice(2)) + 1).padStart(4, '0');
 
-    console.log(`Chamando nova senha: ${novaSenha}`); // Log para verificar a nova senha
+            console.log(`Chamando nova senha: ${novaSenha}`);
 
-    // Atualize a interface localmente
-    document.getElementById('senhaAtual').innerText = novaSenha;
+            // Atualize a interface localmente
+            document.getElementById('senhaAtual').innerText = novaSenha;
 
-    // Verifica se há mesa livre e atribui a nova senha a ela
-    const mesaLivre = escolherMesaLivre();
-    if (mesaLivre) {
-        firebase.database().ref(mesaLivre).set({
-            status: "Ocupada",
-            senha: novaSenha,
-            startTime: new Date().getTime()
-        })
-        .then(() => {
-            console.log(`Senha ${novaSenha} atribuída à ${mesaLivre}.`);
-        })
-        .catch((error) => {
-            console.error(`Erro ao atribuir a senha à mesa: ${error}`);
-        });
-    } else {
-        console.log("Não há mesas livres.");
-        alert("Não há mesas livres para atender a nova senha.");
-    }
+            // Verifica se há mesa livre e atribui a nova senha a ela
+            const mesaLivre = escolherMesaLivre();
+            if (mesaLivre) {
+                firebase.database().ref(mesaLivre).set({
+                    status: "Ocupada",
+                    senha: novaSenha,
+                    startTime: new Date().getTime()
+                })
+                .then(() => {
+                    console.log(`Senha ${novaSenha} atribuída à ${mesaLivre}.`);
+                })
+                .catch((error) => {
+                    console.error(`Erro ao atribuir a senha à mesa: ${error}`);
+                });
+            } else {
+                console.log("Não há mesas livres.");
+                alert("Não há mesas livres para atender a nova senha.");
+            }
 
-    // Atualize no Firebase a senha atual
-    firebase.database().ref('senhaAtual').set(novaSenha)
-        .then(() => {
-            console.log("Senha atualizada no Firebase.");
-        })
-        .catch((error) => {
-            console.error("Erro ao atualizar a senha no Firebase: ", error);
-        });
-}
-
+            // Atualize no Firebase a senha atual
+            firebase.database().ref('senhaAtual').set(novaSenha)
+                .then(() => {
+                    console.log("Senha atualizada no Firebase.");
+                })
+                .catch((error) => {
+                    console.error("Erro ao atualizar a senha no Firebase: ", error);
+                });
+        }
 
         firebase.database().ref().on('value', function(snapshot) {
-    const data = snapshot.val();
-    for (let i = 1; i <= 4; i++) {
-        const mesa = `mesa${i}`;
-        if (data[mesa]) {
-            const mesaElement = document.getElementById(mesa);
-            mesaElement.innerText = `Mesa ${i}: ${data[mesa].status}`;
+            const data = snapshot.val();
+            for (let i = 1; i <= 4; i++) {
+                const mesa = `mesa${i}`;
+                if (data[mesa]) {
+                    const mesaElement = document.getElementById(mesa);
+                    mesaElement.innerText = `Mesa ${i}: ${data[mesa].status}`;
 
-            if (data[mesa].status === "Ocupada") {
-                const senha = data[mesa].senha ? ` | Senha: ${data[mesa].senha}` : '';
-                mesaElement.innerText += senha;
-                document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
-                startCronometro(mesa, data[mesa].startTime);
-            } else {
-                document.getElementById(`timer${i}`).innerText = "00:00:00";
-                clearInterval(timers[mesa]);
+                    if (data[mesa].status === "Ocupada") {
+                        const senha = data[mesa].senha ? ` | Senha: ${data[mesa].senha}` : '';
+                        mesaElement.innerText += senha;
+                        document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
+                        startCronometro(mesa, data[mesa].startTime);
+                    } else {
+                        document.getElementById(`timer${i}`).innerText = "00:00:00";
+                        clearInterval(timers[mesa]);
+                    }
+                }
             }
-        }
-    }
-    if (data.senhaAtual) {
-        document.getElementById('senhaAtual').innerText = data.senhaAtual;
-    }
-});
-
+            if (data.senhaAtual) {
+                document.getElementById('senhaAtual').innerText = data.senhaAtual;
+            }
+        });
 
         function startCronometro(mesa, startTime) {
             if (timers[mesa]) clearInterval(timers[mesa]);
