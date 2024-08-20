@@ -98,33 +98,33 @@
         }
 
         function finalizarAtendimento() {
-            const mesa = escolherMesaOcupada();
-            if (mesa) {
-                const elapsedTime = document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText;
-                firebase.database().ref(mesa).once('value').then((snapshot) => {
-                    const mesaData = snapshot.val();
-                    const atendimento = {
-                        mesa: mesa.replace("mesa", ""),
-                        cpf: mesaData.cpf,
-                        contato: mesaData.contato,
-                        servico: mesaData.servico,
-                        startTime: new Date(mesaData.startTime).toLocaleString(),
-                        elapsedTime: elapsedTime
-                    };
-                    relatorio.push(atendimento);
-                    
-                    firebase.database().ref(mesa).set({
-                        status: "Livre",
-                        elapsedTime: elapsedTime
-                    });
+    const mesa = escolherMesaOcupada();
+    if (mesa) {
+        const elapsedTime = document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText;
+        firebase.database().ref(mesa).once('value').then((snapshot) => {
+            const mesaData = snapshot.val();
+            const atendimento = {
+                mesa: mesa.replace("mesa", ""),
+                cpf: mesaData.cpf,
+                contato: mesaData.contato,
+                servico: mesaData.servico,
+                startTime: new Date(mesaData.startTime).toLocaleString(),
+                elapsedTime: elapsedTime
+            };
+            relatorio.push(atendimento);
+            
+            firebase.database().ref(mesa).set({
+                status: "Livre",
+                elapsedTime: elapsedTime
+            });
 
-                    clearInterval(timers[mesa]);
-                    document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText = "00:00:00";
-                });
-            } else {
-                alert("Nenhuma mesa ocupada para finalizar.");
-            }
-        }
+            clearInterval(timers[mesa]);
+            document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText = "00:00:00";
+        });
+    } else {
+        alert("Nenhuma mesa ocupada para finalizar.");
+    }
+}
 
         function chamarProximaSenha() {
     const senhaAtual = document.getElementById('senhaAtual').innerText;
@@ -175,28 +175,28 @@
         }
 
         firebase.database().ref().on('value', function(snapshot) {
-            const data = snapshot.val();
-            for (let i = 1; i <= 4; i++) {
-                const mesa = `mesa${i}`;
-                if (data[mesa]) {
-                    const mesaElement = document.getElementById(mesa);
-                    mesaElement.innerText = `Mesa ${i}: ${data[mesa].status}`;
+    const data = snapshot.val();
+    for (let i = 1; i <= 4; i++) {
+        const mesa = `mesa${i}`;
+        if (data[mesa]) {
+            const mesaElement = document.getElementById(mesa);
+            mesaElement.innerText = `Mesa ${i}: ${data[mesa].status}`;
 
-                    if (data[mesa].status === "Ocupada") {
-                        const senha = data[mesa].senha ? ` | Senha: ${data[mesa].senha}` : '';
-                        mesaElement.innerText += senha;
-                        document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
-                        startCronometro(mesa, data[mesa].startTime);
-                    } else {
-                        document.getElementById(`timer${i}`).innerText = "00:00:00";
-                        clearInterval(timers[mesa]);
-                    }
-                }
+            if (data[mesa].status === "Ocupada") {
+                const senha = data[mesa].senha ? ` | Senha: ${data[mesa].senha}` : '';
+                mesaElement.innerText += senha;
+                document.getElementById(`timer${i}`).innerText = calcularTempoUsado(data[mesa].startTime);
+                startCronometro(mesa, data[mesa].startTime);
+            } else {
+                document.getElementById(`timer${i}`).innerText = "00:00:00";
+                clearInterval(timers[mesa]);
             }
-            if (data.senhaAtual) {
-                document.getElementById('senhaAtual').innerText = data.senhaAtual;
-            }
-        });
+        }
+    }
+    if (data.senhaAtual) {
+        document.getElementById('senhaAtual').innerText = data.senhaAtual;
+    }
+});
 
         function startCronometro(mesa, startTime) {
             if (timers[mesa]) clearInterval(timers[mesa]);
