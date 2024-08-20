@@ -127,32 +127,42 @@
         }
 
         function chamarProximaSenha() {
-            const senhaAtual = document.getElementById('senhaAtual').innerText;
-            const novaSenha = "AT" + String(parseInt(senhaAtual.slice(2)) + 1).padStart(4, '0');
+    const senhaAtual = document.getElementById('senhaAtual').innerText;
+    const novaSenha = "AT" + String(parseInt(senhaAtual.slice(2)) + 1).padStart(4, '0');
 
-            console.log(`Chamando nova senha: ${novaSenha}`);
+    console.log(`Chamando nova senha: ${novaSenha}`);
 
-            // Atualize a interface localmente
-            document.getElementById('senhaAtual').innerText = novaSenha;
+    // Atualize a interface localmente
+    document.getElementById('senhaAtual').innerText = novaSenha;
 
-            // Verifica se há mesa livre e atribui a nova senha a ela
-            const mesaLivre = escolherMesaLivre();
-            if (mesaLivre) {
-                firebase.database().ref(mesaLivre).set({
-                    status: "Ocupada",
-                    senha: novaSenha,
-                    startTime: new Date().getTime()
-                })
-                .then(() => {
-                    console.log(`Senha ${novaSenha} atribuída à ${mesaLivre}.`);
-                })
-                .catch((error) => {
-                    console.error(`Erro ao atribuir a senha à mesa: ${error}`);
-                });
-            } else {
-                console.log("Não há mesas livres.");
-                alert("Não há mesas livres para atender a nova senha.");
-            }
+    // Verifica se há mesa livre e atribui a nova senha a ela
+    const mesaLivre = escolherMesaLivre();
+    if (mesaLivre) {
+        firebase.database().ref(mesaLivre).set({
+            status: "Ocupada",
+            senha: novaSenha,
+            startTime: new Date().getTime()
+        })
+        .then(() => {
+            console.log(`Senha ${novaSenha} atribuída à ${mesaLivre}.`);
+        })
+        .catch((error) => {
+            console.error(`Erro ao atribuir a senha à mesa: ${error}`);
+        });
+    } else {
+        console.log("Não há mesas livres.");
+        alert("Não há mesas livres para atender a nova senha.");
+    }
+
+    // Atualize no Firebase a senha atual
+    firebase.database().ref('senhaAtual').set(novaSenha)
+        .then(() => {
+            console.log("Senha atualizada no Firebase.");
+        })
+        .catch((error) => {
+            console.error("Erro ao atualizar a senha no Firebase: ", error);
+        });
+}
 
             // Atualize no Firebase a senha atual
             firebase.database().ref('senhaAtual').set(novaSenha)
