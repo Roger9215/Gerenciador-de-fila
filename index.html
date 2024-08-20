@@ -71,15 +71,27 @@
         const database = firebase.database();
 
         let timers = {};
+        let relatorio = [];
 
         function iniciarAtendimento() {
             const mesa = escolherMesaLivre();
             if (mesa) {
                 const startTime = new Date().getTime();
+                const cpf = document.getElementById("cpf").value;
+                const contato = document.getElementById("contato").value;
+                const servico = document.getElementById("servico").value;
+
                 firebase.database().ref(mesa).set({
                     status: "Ocupada",
-                    startTime: startTime
+                    startTime: startTime,
+                    cpf: cpf,
+                    contato: contato,
+                    servico: servico
                 });
+
+                document.getElementById("cpf").value = "";
+                document.getElementById("contato").value = "";
+                document.getElementById("servico").selectedIndex = 0;
             } else {
                 alert("Todas as mesas estão ocupadas.");
             }
@@ -89,9 +101,25 @@
             const mesa = escolherMesaOcupada();
             if (mesa) {
                 const elapsedTime = document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText;
-                firebase.database().ref(mesa).set({
-                    status: "Livre",
-                    elapsedTime: elapsedTime
+                firebase.database().ref(mesa).once('value').then((snapshot) => {
+                    const mesaData = snapshot.val();
+                    const atendimento = {
+                        mesa: mesa.replace("mesa", ""),
+                        cpf: mesaData.cpf,
+                        contato: mesaData.contato,
+                        servico: mesaData.servico,
+                        startTime: new Date(mesaData.startTime).toLocaleString(),
+                        elapsedTime: elapsedTime
+                    };
+                    relatorio.push(atendimento);
+                    
+                    firebase.database().ref(mesa).set({
+                        status: "Livre",
+                        elapsedTime: elapsedTime
+                    });
+
+                    clearInterval(timers[mesa]);
+                    document.getElementById(`timer${mesa.replace("mesa", "")}`).innerText = "00:00:00";
                 });
             } else {
                 alert("Nenhuma mesa ocupada para finalizar.");
@@ -195,6 +223,14 @@
                 }
             }
             return null;
+        }
+
+        function gerarRelatorio() {
+            const ws = XLSX.utils.json_to_sheet(relatorio);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+
+            XLSX.writeFile(wb, "relatorio_atendimentos.xlsx");
         }
     </script>
 </body>
